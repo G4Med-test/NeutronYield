@@ -1,0 +1,30 @@
+
+#
+# macro file for bremsstrahlung
+#
+/control/verbose 0
+/run/verbose 0
+
+#
+# define here the Scattering foil
+#
+/NeutronYield/Geometry/Target/SetMaterial theMaterial 
+/NeutronYield/Geometry/Target/SetThickness theThickness cm
+/NeutronYield/Geometry/Target/SetRadius theRadius cm
+
+/NeutronYield/PhysicsList/AddPhysics theModel
+
+/run/initialize
+
+/gps/verbose 0
+/gps/particle proton
+/gps/ene/mono theEnergy MeV
+/gps/direction 0 0 1
+/gps/position 0.0 0.0 -5.03 cm
+/gps/pos/type Plane
+/gps/pos/shape Circle
+/gps/pos/radius  theRadius cm 
+
+/analysis/setFileName results/theModel_theMaterial_theEnergy_MeV
+
+

@@ -1,0 +1,50 @@
+#
+#
+/control/verbose 0
+/run/verbose 0
+#
+/NeutronYield/Geometry/Target/SetMaterial G4_WATER
+
+/NeutronYield/PhysicsList/AddPhysics proton_Shielding_em_standard_opt4 
+
+/run/initialize
+
+/gps/verbose 0
+/gps/particle ion
+/gps/ion 6 12 6
+/gps/ene/mono 3480 MeV 
+/gps/direction 0 0 1
+/gps/position 0.0 0.0 -25 cm 
+/gps/pos/type Plane
+/gps/pos/shape Circle
+/gps/pos/radius 0.25 cm 
+
+/analysis/setFileName results/carbon_Shielding_em_standard_opt4_Water290MeVu
+
+/analysis/h1/set 0 80 1 1000 MeV none log
+/analysis/h1/set 1 80 1 1000 MeV none log
+/analysis/h1/set 2 80 1 1000 MeV none log
+/analysis/h1/set 3 80 1 1000 MeV none log
+/analysis/h1/set 4 80 1 1000 MeV none log
+/analysis/h1/set 5 80 1 1000 MeV none log
+/analysis/h1/set 6 80 1 1000 MeV none log
+/analysis/h1/set 7 80 1 1000 MeV none log
+/analysis/h1/set 8 80 1 1000 MeV none log
+/analysis/h1/set 9 80 1 1000 MeV none log
+/analysis/h1/set 10 80 1 1000 MeV none log
+/analysis/h1/set 11 80 1 1000 MeV none log
+/analysis/h1/set 12 80 1 1000 MeV none log
+/analysis/h1/set 13 80 1 1000 MeV none log
+/analysis/h1/set 14 80 1 1000 MeV none log
+/analysis/h1/set 15 80 1 1000 MeV none log
+/analysis/h1/set 16 80 1 1000 MeV none log
+/analysis/h1/set 17 80 1 1000 MeV none log
+/analysis/h1/set 18 80 1 1000 MeV none log
+/analysis/h1/set 19 80 1 1000 MeV none log
+/analysis/h1/set 20 80 1 1000 MeV none log
+/analysis/h1/set 21 80 1 1000 MeV none log
+/analysis/h1/set 22 80 1 1000 MeV none log
+
+/run/printProgress 1000000
+/run/beamOn        10000000
+

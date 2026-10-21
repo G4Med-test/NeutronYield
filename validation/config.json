@@ -1,3 +1,18 @@
 {
-  "macros": ["example.mac"]
+  "macros": [
+    "carbon_BIC_em_standard_opt4_Water290MeVu.mac",
+    "carbon_Shielding_em_standard_opt4_Water290MeVu.mac",
+    "proton_BIC_em_standard_opt4_Aluminum113MeV.mac",
+    "proton_BIC_em_standard_opt4_Aluminum256MeV.mac",
+    "proton_BIC_em_standard_opt4_Carbon113MeV.mac",
+    "proton_BIC_em_standard_opt4_Carbon256MeV.mac",
+    "proton_BIC_em_standard_opt4_Iron113MeV.mac",
+    "proton_BIC_em_standard_opt4_Iron256MeV.mac",
+    "proton_Shielding_em_standard_opt4_Aluminum113MeV.mac",
+    "proton_Shielding_em_standard_opt4_Aluminum256MeV.mac",
+    "proton_Shielding_em_standard_opt4_Carbon113MeV.mac",
+    "proton_Shielding_em_standard_opt4_Carbon256MeV.mac",
+    "proton_Shielding_em_standard_opt4_Iron113MeV.mac",
+    "proton_Shielding_em_standard_opt4_Iron256MeV.mac"
+  ]
 }

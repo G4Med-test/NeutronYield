@@ -1,75 +1,103 @@
-"""Turns the output of one validation run into plots for the Geant Validation Portal.
+#!/usr/bin/env python
 
-The CI imports this file and calls two functions, once for every macro listed in
-validation/config.json:
+# NeutronYield portal parser: metadata() reads the macro, parse() the
+# "Scorer_<angle>_deg" neutron-energy histograms written to the ROOT file
+# named by the macro's own /analysis/setFileName.
+#
+# Ported from geant-config-generator/tests/geant4/NeutronYield/parser.py
+# (gts.BaseParser + PyROOT, merging repeated-seed jobs) to the module-level
+# metadata()/parse() API expected by ci-workflows/validation/export.py,
+# reading ROOT with uproot (no PyROOT on the runner, no job-group merge:
+# one macro now means one run, so the original's sum-of-NEVENTS-across-jobs
+# normalization reduces to this one job's own NEVENTS).
+import math
+import os
 
-1. metadata(commands)  BEFORE the simulation: describe the run from its macro.
-2. parse(job)          AFTER the simulation: read the output files, return plots.
+from geantval import getJSON, one_command, single_run
 
-You only have to edit the lines marked TODO. Example with macro/example.mac:
-
-    commands = [("/myapp/phys/addPhysics", "FTFP_BERT"), ("/run/initialize", ""),
-                ("/gun/particle", "proton"), ("/gun/energy", "100 MeV"), ...]
-
-    metadata(commands) -> {"TEST": "MyTest", "PHYSICS_LIST": "FTFP_BERT",
-                           "PARTICLE": "proton", "ENERGY": 100.0}
-
-    job = that dict + {"path": "<directory of the run>", "VERSION": "11.3.2"}
-    parse(job) -> one plot per `yield`
-
-The run directory contains the files your application wrote with relative names
-(here result.txt) and the captured standard output (test_stdout.txt).
-
-Helpers from ci-workflows/validation/geantval.py:
-- one_command(commands, "/cmd"): value of a command that appears exactly once
-  (error if missing or repeated, so the metadata always matches the macro);
-- energy_mev("100 MeV"): energy in MeV;
-- getJSON(job, ...): builds one plot in the portal format (see parse below).
-"""
-from pathlib import Path
-
-from geantval import energy_mev, getJSON, one_command
+TARGET_NAMES = {"Aluminum": "Al", "Carbon": "C", "Iron": "Fe", "G4_WATER": "Water"}
 
 
 def metadata(commands):
-    """Describe one run, reading every setting from its macro.
+    nevents = single_run(commands)
+    filename = one_command(commands, "/analysis/setFileName")
+    gps_particle = one_command(commands, "/gps/particle")
+    if gps_particle == "ion":
+        ion = one_command(commands, "/gps/ion").split()
+        if ion[:2] != ["6", "12"]:
+            raise ValueError("This validation is configured for C12 ions")
+        particle = "C12"
+    elif gps_particle == "proton":
+        particle = "proton"
+    else:
+        raise ValueError("Unexpected /gps/particle: " + gps_particle)
+    return {"TEST": "NeutronYield",
+            "MODEL": one_command(commands, "/NeutronYield/PhysicsList/AddPhysics"),
+            "MATERIAL": one_command(commands, "/NeutronYield/Geometry/Target/SetMaterial"),
+            "PARTICLE": particle,
+            "ENERGY": one_command(commands, "/gps/ene/mono"),
+            "NEVENTS": nevents,
+            "OUTPUT": filename if filename.endswith(".root") else filename + ".root"}
 
-    The returned dict must contain "TEST" (the test name shown on the portal);
-    add whatever parse() needs. Raise an error if the macro is not suitable.
-    """
-    return {
-        "TEST": "MyTest",  # TODO: your test name
-        "PHYSICS_LIST": one_command(commands, "/myapp/phys/addPhysics"),  # TODO: your command
-        "PARTICLE": one_command(commands, "/gun/particle"),
-        "ENERGY": energy_mev(one_command(commands, "/gun/energy")),
-    }
+
+def deg2rad(angle):
+    return angle * math.pi / 180.
+
+
+def solid_angle(angle, acceptance):
+    if angle in (0, 180):
+        omega = (math.cos(deg2rad(angle)) - math.cos(deg2rad(2 * acceptance))) * 2. * math.pi
+    else:
+        omega = (math.cos(deg2rad(angle - acceptance)) - math.cos(deg2rad(angle + acceptance))) * 2. * math.pi
+    return abs(omega)
+
+
+def extract(hist):
+    edges = hist.axis().edges(flow=False).tolist()
+    values = hist.values(flow=False).tolist()
+    errors = hist.errors(flow=False).tolist()
+    return edges[:-1], edges[1:], values, errors
 
 
 def parse(job):
-    """Read the output of the run in job["path"] and yield one plot per `yield`."""
-    # TODO: read your output file. This example expects two columns, x and y,
-    # one point per line; lines starting with # are comments.
-    x, y = [], []
-    for line in (Path(job["path"]) / "result.txt").read_text().splitlines():
-        if line.strip() and not line.startswith("#"):
-            x_value, y_value = line.split()
-            x.append(float(x_value))
-            y.append(float(y_value))
+    import uproot
 
-    # "chart" is a set of points (x, y). For a histogram use "histogram" with
-    # binEdgeLow, binEdgeHigh and binContent instead of xValues and yValues.
-    # Optional uncertainties: yStatErrorsPlus/Minus, ySysErrorsPlus/Minus.
-    yield getJSON(
-        job, "chart",
-        mctool_name="GEANT4",
-        mctool_model=job["PHYSICS_LIST"],
-        observableName="TODO observable",  # e.g. "attenuation coefficient"
-        targetName="TODO target",          # e.g. "water"
-        beamParticle=job["PARTICLE"],
-        beamEnergies=[job["ENERGY"]],      # MeV
-        title="TODO title",
-        xAxisName="TODO x, unit",
-        yAxisName="TODO y, unit",
-        xValues=x,
-        yValues=y,
-    )
+    particle = job["PARTICLE"]
+    target = TARGET_NAMES[job["MATERIAL"]]
+    energy = float(job["ENERGY"].split()[0])
+
+    filename = os.path.join(job["path"], job["OUTPUT"])
+    with uproot.open(filename) as root:
+        names = [k.split(";")[0] for k in root.keys(cycle=False, recursive=False)]
+        for name in names:
+            if particle == "C12" and "." in name:
+                continue  # only the integer-angle histograms are filled for the C12 beam
+            angle = float(name.split("_")[1])
+            if particle == "C12":
+                angle = angle * 15
+                sa = 1.317e-3
+            else:
+                sa = solid_angle(angle, 2)
+
+            binlow, binhigh, values, errors = extract(root[name])
+            scale = 1.0 / float(job["NEVENTS"]) / sa
+            binContent = [v * scale for v in values]
+            binErrors = [e * scale for e in errors]
+
+            yield getJSON(job, "histogram",
+                          mctool_name="GEANT4",
+                          mctool_model=job["MODEL"],
+                          observableName="neutron yield",
+                          targetName=target,
+                          beamParticle=particle,
+                          beamEnergies=[energy],
+                          parameters=[{"names": "angle", "values": "%s deg" % angle}],
+                          secondaryParticle="None",
+                          title="NeutronYield Scorer",
+                          xAxisName="Neutron energy (MeV)",
+                          yAxisName="Neutron yield (n/Mev/sr/pr.particle)",
+                          binEdgeLow=binlow,
+                          binEdgeHigh=binhigh,
+                          binContent=binContent,
+                          yStatErrorsPlus=binErrors,
+                          yStatErrorsMinus=binErrors)

@@ -1,0 +1,38 @@
+
+#
+# macro file for bremsstrahlung
+#
+/control/verbose 0
+/run/verbose 0
+
+#
+# define here the Scattering foil
+#
+/NeutronYield/Geometry/Target/SetMaterial Aluminum 
+/NeutronYield/Geometry/Target/SetThickness 20.0 cm
+/NeutronYield/Geometry/Target/SetRadius 8.0 cm
+
+/NeutronYield/PhysicsList/AddPhysics proton_BIC_em_standard_opt4
+
+/run/initialize
+
+/gps/verbose 0
+/gps/particle proton
+/gps/ene/mono 256 MeV
+/gps/direction 0 0 1
+/gps/position 0.0 0.0 -5.03 cm
+/gps/pos/type Plane
+/gps/pos/shape Circle
+/gps/pos/radius  8.0 cm 
+
+/analysis/setFileName results/proton_BIC_em_standard_opt4_Aluminum_256_MeV
+
+
+/analysis/h1/set 2 94 0.490  250.000  MeV none log
+/analysis/h1/set 3 92 0.490  210.000  MeV none log
+/analysis/h1/set 5 83 0.490  115.000  MeV none log
+/analysis/h1/set 6 82 0.490  107.500  MeV none log
+/analysis/h1/set 0 80 1.0  256.000  MeV none log
+
+/run/printProgress 5000000
+/run/beamOn        50000000

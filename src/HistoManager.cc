@@ -24,6 +24,8 @@ void HistoManager::Book()
     // The choice of analysis technology is done via selection of a namespace
     // in HistoManager.hh
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
+    // The macros set file names without extension: write ROOT files
+    analysisManager->SetDefaultFileType("root");
     analysisManager->SetFileName(fFileName);
     analysisManager->SetActivation(true);
     analysisManager->SetVerboseLevel(1);

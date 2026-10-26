@@ -13,6 +13,8 @@
 
 #include "Randomize.hh"
 
+#include <filesystem>
+
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 RunAction::RunAction(DetectorConstruction*, PhysicsList*, PrimaryGeneratorAction* kin)
@@ -49,8 +51,13 @@ void RunAction::BeginOfRunAction(const G4Run*)
     }
     
     G4AnalysisManager* analysisManager = G4AnalysisManager::Instance();
-    if ( analysisManager->IsActive() ) 
+    if ( analysisManager->IsActive() ) {
+        // The macros write to results/<name>: create the directory, the
+        // ROOT writer does not
+        std::filesystem::path dir = std::filesystem::path(analysisManager->GetFileName()).parent_path();
+        if (!dir.empty()) std::filesystem::create_directories(dir);
     	analysisManager->OpenFile();
+    }
  
 
      

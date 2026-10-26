@@ -59,11 +59,10 @@
  
 int main(int argc,char** argv) {
  
-  //choose the Random engine
+  //choose the Random engine; set the seed, if needed, in the macro
+  //with /random/setSeeds
 
-  G4int myseed = atoi(argv[2]);
   G4Random::setTheEngine(new CLHEP::RanecuEngine);
-  G4Random::setTheSeed(myseed);
     
   //Construct the default run manager
 //#ifdef G4MULTITHREADED
